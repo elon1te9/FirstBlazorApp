@@ -1,0 +1,249 @@
+﻿@page "/movies"
+@using Practice1Blazor.Models
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Фильмы</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Фильмы</h1>
+        <p class="page-subtitle">Список всех фильмов из кино дайджеста</p>
+    </div>
+
+    @if (UserState.IsAdmin)
+    {
+        <button class="btn btn-success" @onclick="GoAddMovie">
+            Добавить фильм
+        </button>
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (movies == null)
+{
+    <div class="glass-panel hero-box">
+        <p class="empty-text">Загрузка...</p>
+    </div>
+}
+else
+{
+    <div class="app-card mb-4">
+        <div class="card-body">
+            <h5 class="section-title">Поиск и фильтрация</h5>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="app-label">Поиск по названию</label>
+                    <input class="form-control"
+                           placeholder="Введите название фильма"
+                           @bind="searchText" />
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="app-label">Фильтр по жанру</label>
+                    <select class="form-select" @bind="selectedGenre">
+                        <option value="">Все жанры</option>
+                        @foreach (var genre in genres)
+                        {
+                            <option value="@genre">@genre</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="app-label">Сортировка</label>
+                    <select class="form-select" @bind="sortOption">
+                        <option value="title">По названию</option>
+                        <option value="rating">По рейтингу</option>
+                        <option value="date">По дате выхода</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (FilteredMovies.Count == 0)
+    {
+        <div class="glass-panel hero-box">
+            <p class="empty-text">Ничего не найдено.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var movie in FilteredMovies)
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="app-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div style="height:320px; margin-bottom:16px; overflow:hidden; border-radius:16px;">
+
+                                <img src="@(string.IsNullOrWhiteSpace(movie.image_url) ? "/images/no-poster.jpg" : movie.image_url)"
+                                     alt="@movie.title"
+                                     style="width:100%; height:100%; object-fit:cover;"
+                                     onerror="this.src='/images/no-poster.jpg'" />
+
+                            </div>
+
+                            <h5 class="section-title mb-2">@movie.title</h5>
+
+                            <div class="mb-2">
+                                <span class="stat-badge me-2">@movie.genre</span>
+                                <span class="stat-badge">⭐ @movie.rating</span>
+                            </div>
+
+                            <p class="page-subtitle mb-2">
+                                Дата выхода: @movie.release_date.ToString("dd.MM.yyyy")
+                            </p>
+
+                            <p style="color:#dbe4ff;">
+                                @GetShortDescription(movie.description)
+                            </p>
+
+                            <div class="mt-auto d-flex gap-2 flex-wrap">
+                                <button class="btn btn-primary btn-sm" @onclick="() => GoDetails(movie.id_movie)">
+                                    Подробнее
+                                </button>
+
+                                @if (UserState.IsAdmin)
+                                {
+                                    <button class="btn btn-warning btn-sm" @onclick="() => GoEdit(movie.id_movie)">
+                                        Изменить
+                                    </button>
+
+                                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteMovie(movie.id_movie)">
+                                        Удалить
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<MovieDto>? movies;
+    private string? error;
+
+    private string searchText = string.Empty;
+    private string selectedGenre = string.Empty;
+    private string sortOption = "title";
+
+    private List<string> genres = new();
+
+    private List<MovieDto> FilteredMovies
+    {
+        get
+        {
+            var result = movies ?? new List<MovieDto>();
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                result = result
+                    .Where(x => x.title.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedGenre))
+            {
+                result = result
+                    .Where(x => x.genre == selectedGenre)
+                    .ToList();
+            }
+
+            result = sortOption switch
+            {
+                "rating" => result.OrderByDescending(x => x.rating).ToList(),
+                "date" => result.OrderByDescending(x => x.release_date).ToList(),
+                _ => result.OrderBy(x => x.title).ToList()
+            };
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMovies();
+    }
+
+    private async Task LoadMovies()
+    {
+        error = null;
+
+        var result = await Api.GetMoviesList();
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!result.status)
+        {
+            error = result.error ?? "Ошибка загрузки фильмов";
+            return;
+        }
+
+        movies = result.movies ?? new List<MovieDto>();
+
+        genres = movies
+            .Select(x => x.genre)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+    }
+
+    private void GoDetails(int id)
+    {
+        Nav.NavigateTo($"/movie/{id}");
+    }
+
+    private void GoAddMovie()
+    {
+        Nav.NavigateTo("/add-movie");
+    }
+
+    private void GoEdit(int id)
+    {
+        Nav.NavigateTo($"/edit-movie/{id}");
+    }
+
+    private async Task DeleteMovie(int id)
+    {
+        var result = await Api.DeleteMovie(id);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!result.status)
+        {
+            error = result.error ?? "Ошибка удаления фильма";
+            return;
+        }
+
+        await LoadMovies();
+    }
+    private string GetShortDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return "Описание отсутствует";
+
+        if (description.Length <= 50)
+            return description;
+
+        return description.Substring(0, 50) + "...";
+    }
+}

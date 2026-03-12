@@ -1,0 +1,81 @@
+﻿@page "/login"
+@using Practice1Blazor.Requests
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Вход</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Вход</h1>
+        <p class="page-subtitle">Авторизация в системе</p>
+    </div>
+</div>
+
+@if (UserState.IsAuthenticated)
+{
+    <div class="alert alert-info">
+        Вы уже вошли в систему.
+    </div>
+}
+else
+{
+    <div class="center-card-wrap">
+        <div class="app-card">
+            <div class="card-body">
+                <h5 class="section-title">Войдите в аккаунт</h5>
+
+                <div class="mb-3">
+                    <label class="app-label">Email</label>
+                    <input class="form-control" @bind="model.email" placeholder="Введите email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Пароль</label>
+                    <input class="form-control" type="password" @bind="model.password" placeholder="Введите пароль" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger mb-3">@error</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="DoLogin">Войти</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthUserModel model = new();
+    private string? error;
+
+    private async Task DoLogin()
+    {
+        error = null;
+
+        var result = await Api.AuthUser(model);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!result.status || result.user == null)
+        {
+            error = result.error ?? "Ошибка входа";
+            return;
+        }
+
+        UserState.SetUser(result.user);
+
+        if (UserState.IsAdmin)
+            Nav.NavigateTo("/users");
+        else
+            Nav.NavigateTo("/");
+    }
+}

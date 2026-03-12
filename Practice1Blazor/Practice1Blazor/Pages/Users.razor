@@ -1,0 +1,213 @@
+﻿@page "/users"
+@using Practice1Blazor.Models
+@using Practice1Blazor.Requests;
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Пользователи</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Пользователи</h1>
+        <p class="page-subtitle">Управление пользователями доступно только администратору</p>
+    </div>
+</div>
+
+@if (!UserState.IsAuthenticated)
+{
+    <div class="alert alert-warning">Сначала войдите в систему.</div>
+}
+else if (!UserState.IsAdmin)
+{
+    <div class="alert alert-danger">Доступ запрещён. Только для администратора.</div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(deleteError))
+    {
+        <div class="alert alert-danger">@deleteError</div>
+    }
+    @if (!string.IsNullOrEmpty(deleteOk))
+    {
+        <div class="alert alert-success">@deleteOk</div>
+    }
+
+    <div class="app-card mb-4">
+        <div class="card-body">
+            <div class="page-header mb-3">
+                <div>
+                    <h5 class="section-title mb-1">Добавить пользователя</h5>
+                    <p class="page-subtitle mb-0">Создание нового пользователя прямо из панели администратора</p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(createError))
+            {
+                <div class="alert alert-danger">@createError</div>
+            }
+            @if (!string.IsNullOrEmpty(createOk))
+            {
+                <div class="alert alert-success">@createOk</div>
+            }
+
+            <div class="row g-3">
+                <div class="col-12 col-xl-4">
+                    <label class="app-label">Email</label>
+                    <input class="form-control" placeholder="Введите email" @bind="newUser.email" />
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="app-label">Имя</label>
+                    <input class="form-control" placeholder="Введите имя" @bind="newUser.name" />
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="app-label">О себе</label>
+                    <input class="form-control" placeholder="Краткая информация" @bind="newUser.about" />
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    <label class="app-label">Пароль</label>
+                    <input class="form-control" type="password" placeholder="Пароль" @bind="newUser.password" />
+                </div>
+                <div class="col-12 col-md-6 col-xl-2 d-flex align-items-end">
+                    <button class="btn btn-success w-100" @onclick="CreateUser">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (users == null)
+    {
+        <div class="glass-panel hero-box">
+            <p class="empty-text">Загрузка...</p>
+        </div>
+    }
+    else
+    {
+        <div class="app-card">
+            <div class="card-body">
+                <div class="page-header mb-3">
+                    <div>
+                        <h5 class="section-title mb-1">Список пользователей</h5>
+                        <div class="stat-badge">Всего записей: @users.Count(x => x.id_role == 2)</div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Имя</th>
+                                <th>Роль</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in users)
+                            {
+                                if (user.id_role == 2)
+                                {
+                                    <tr>
+                                        <td>@user.id_user</td>
+                                        <td>@user.email</td>
+                                        <td>@user.name</td>
+                                        <td>@user.role_name</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-warning btn-sm me-2" @onclick="() => GoEdit(user.id_user)">
+                                                Изменить
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => Delete(user.id_user)">
+                                                Удалить
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<UserDto>? users;
+
+    private RegUserModel newUser = new();
+    private string? createError;
+    private string? createOk;
+
+    private string? deleteError;
+    private string? deleteOk;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserState.IsAdmin)
+            return;
+
+        await LoadUsers();
+    }
+
+    private async Task Delete(int id_user)
+    {
+        deleteError = null;
+        deleteOk = null;
+
+        var result = await Api.DeleteUser(id_user);
+
+        if (result == null)
+        {
+            deleteError = "Нет ответа от сервера";
+            return;
+        }
+
+        if (result.status)
+        {
+            deleteOk = result.message ?? "Удалено";
+            await LoadUsers();
+        }
+        else
+        {
+            deleteError = result.error ?? "Ошибка удаления";
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        var result = await Api.GetUsersList();
+        if (result != null && result.status)
+            users = result.users;
+    }
+
+    private async Task CreateUser()
+    {
+        createError = null;
+        createOk = null;
+
+        var result = await Api.CreateNewUser(newUser);
+
+        if (result == null)
+        {
+            createError = "Нет ответа от сервера";
+            return;
+        }
+
+        if (result.status)
+        {
+            createOk = result.message;
+            newUser = new();
+            await LoadUsers();
+        }
+        else
+        {
+            createError = result.error ?? "Ошибка добавления";
+        }
+    }
+
+    private void GoEdit(int id_user)
+    {
+        Nav.NavigateTo($"/edit-user/{id_user}");
+    }
+}

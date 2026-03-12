@@ -1,0 +1,184 @@
+﻿@page "/edit-movie/{Id:int}"
+@using Practice1Blazor.Models
+@using Practice1Blazor.Requests
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Редактировать фильм</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Редактировать фильм</h1>
+        <p class="page-subtitle">Изменение информации о фильме</p>
+    </div>
+</div>
+
+@if (!UserState.IsAuthenticated)
+{
+    <div class="alert alert-warning">Сначала войдите в систему.</div>
+}
+else if (!UserState.IsAdmin)
+{
+    <div class="alert alert-danger">Доступ запрещён. Только администратор может редактировать фильмы.</div>
+}
+else if (isLoading)
+{
+    <div class="glass-panel hero-box">
+        <p class="empty-text">Загрузка фильма...</p>
+    </div>
+}
+else
+{
+    <div class="center-card-wrap">
+        <div class="app-card">
+            <div class="card-body">
+                <h5 class="section-title">Форма редактирования</h5>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+
+                @if (!string.IsNullOrEmpty(ok))
+                {
+                    <div class="alert alert-success">@ok</div>
+                }
+
+                <div class="mb-3">
+                    <label class="app-label">Название</label>
+                    <input class="form-control" @bind="model.title" placeholder="Введите название фильма" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Описание</label>
+                    <textarea class="form-control" rows="4" @bind="model.description" placeholder="Введите описание"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Жанр</label>
+                    <input class="form-control" @bind="model.genre" placeholder="Например: Фантастика" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Дата выхода</label>
+                    <input class="form-control" type="date" @bind="model.release_date" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Рейтинг</label>
+                    <input class="form-control" type="number" step="0.1" @bind="model.rating" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Ссылка на постер</label>
+                    <input class="form-control" @bind="model.image_url" placeholder="https://..." />
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-primary" @onclick="SaveMovie">Сохранить</button>
+                    <button class="btn btn-outline-secondary" @onclick="Back">Назад</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private UpdateMovieModel model = new();
+    private string? error;
+    private string? ok;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMovie();
+    }
+
+    private async Task LoadMovie()
+    {
+        error = null;
+        isLoading = true;
+
+        var result = await Api.GetMovieById(Id);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            isLoading = false;
+            return;
+        }
+
+        if (!result.status || result.movie == null)
+        {
+            error = result.error ?? "Фильм не найден";
+            isLoading = false;
+            return;
+        }
+
+        model.title = result.movie.title;
+        model.description = result.movie.description;
+        model.genre = result.movie.genre;
+        model.release_date = result.movie.release_date;
+        model.rating = result.movie.rating;
+        model.image_url = result.movie.image_url;
+
+        isLoading = false;
+    }
+
+    private async Task SaveMovie()
+    {
+        error = null;
+        ok = null;
+
+        if (string.IsNullOrWhiteSpace(model.title))
+        {
+            error = "Введите название фильма";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.description))
+        {
+            error = "Введите описание фильма";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.genre))
+        {
+            error = "Введите жанр фильма";
+            return;
+        }
+
+        if (model.rating < 0 || model.rating > 10)
+        {
+            error = "Рейтинг должен быть от 0 до 10";
+            return;
+        }
+
+        var result = await Api.UpdateMovie(Id, model);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!result.status)
+        {
+            error = result.error ?? "Ошибка при сохранении фильма";
+            return;
+        }
+
+        ok = result.message ?? "Фильм успешно обновлён";
+
+        Nav.NavigateTo("/movies");
+    }
+
+    private void Back()
+    {
+        Nav.NavigateTo("/movies");
+    }
+}

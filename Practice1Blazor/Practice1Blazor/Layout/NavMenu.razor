@@ -1,0 +1,112 @@
+﻿@implements IDisposable
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<div class="app-sidebar-shell">
+    <div class="app-brand-block">
+        <div class="app-brand-mark">🎬</div>
+        <div>
+            <div class="app-brand-title">MovieDigest</div>
+            <div class="app-brand-subtitle">Blazor Practice Project</div>
+        </div>
+        <button title="Navigation menu" class="navbar-toggler app-menu-toggle" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+
+    <div class="@NavMenuCssClass nav-scrollable">
+        <nav class="nav flex-column app-nav-list">
+            <div class="nav-item">
+                <NavLink class="nav-link app-nav-link" href="" Match="NavLinkMatch.All">
+                    <span>🏠</span>
+                    <span>Дом</span>
+                </NavLink>
+            </div>
+
+            @if (!UserState.IsAuthenticated)
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link app-nav-link" href="login">
+                        <span>🔐</span>
+                        <span>Вход</span>
+                    </NavLink>
+                </div>
+
+                <div class="nav-item">
+                    <NavLink class="nav-link app-nav-link" href="register">
+                        <span>📝</span>
+                        <span>Регистрация</span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (UserState.IsAuthenticated)
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link app-nav-link" href="movies">
+                        <span>🎞️</span>
+                        <span>Фильмы</span>
+                    </NavLink>
+                </div>
+
+                <div class="nav-item">
+                    <NavLink class="nav-link app-nav-link" href="profile">
+                        <span>🙍</span>
+                        <span>Профиль</span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (UserState.IsAdmin)
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link app-nav-link" href="users">
+                        <span>👥</span>
+                        <span>Пользователи</span>
+                    </NavLink>
+                </div>
+            }
+
+            @if (UserState.IsAuthenticated)
+            {
+                <div class="mt-3">
+                    <button class="btn btn-outline-danger w-100" @onclick="Logout">
+                        Выход
+                    </button>
+                </div>
+            }
+        </nav>
+    </div>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override void OnInitialized()
+    {
+        UserState.StateChanged += Refresh;
+    }
+
+    private void Refresh()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void Logout()
+    {
+        UserState.Logout();
+        Nav.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        UserState.StateChanged -= Refresh;
+    }
+}

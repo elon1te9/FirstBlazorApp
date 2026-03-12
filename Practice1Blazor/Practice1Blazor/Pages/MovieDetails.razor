@@ -1,0 +1,153 @@
+﻿@page "/movie/{Id:int}"
+@using Practice1Blazor.Models
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Информация о фильме</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Информация о фильме</h1>
+        <p class="page-subtitle">Подробное описание выбранного фильма</p>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="glass-panel hero-box">
+        <p class="empty-text">Загрузка фильма...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (movie != null)
+{
+    <div class="row g-4">
+        <div class="col-12 col-lg-4">
+            <div class="app-card h-100">
+                <div class="card-body">
+                    @if (!string.IsNullOrWhiteSpace(movie.image_url))
+                    {
+                        <img src="@movie.image_url"
+                             alt="@movie.title"
+                             style="width:100%; height:420px; object-fit:cover; border-radius:16px;" />
+                    }
+                    else
+                    {
+                        <div class="glass-panel hero-box d-flex align-items-center justify-content-center"
+                             style="height:420px; margin-bottom:0;">
+                            <p class="empty-text">Постер отсутствует</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="app-card h-100">
+                <div class="card-body">
+                    <h2 class="page-title" style="font-size: 1.8rem;">@movie.title</h2>
+
+                    <div class="mb-3 d-flex gap-2 flex-wrap">
+                        <span class="stat-badge">Жанр: @movie.genre</span>
+                        <span class="stat-badge">Рейтинг: ⭐ @movie.rating</span>
+                        <span class="stat-badge">Дата выхода: @movie.release_date.ToString("dd.MM.yyyy")</span>
+                    </div>
+
+                    <h5 class="section-title">Описание</h5>
+                    <p style="color:#dbe4ff; line-height:1.7;">
+                        @movie.description
+                    </p>
+
+                    <div class="d-flex gap-2 flex-wrap mt-4">
+                        <button class="btn btn-outline-secondary" @onclick="Back">
+                            Назад
+                        </button>
+
+                        @if (UserState.IsAdmin)
+                        {
+                            <button class="btn btn-warning" @onclick="GoEdit">
+                                Изменить
+                            </button>
+
+                            <button class="btn btn-danger" @onclick="DeleteMovie">
+                                Удалить
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private MovieDto? movie;
+    private string? error;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMovie();
+    }
+
+    private async Task LoadMovie()
+    {
+        error = null;
+        isLoading = true;
+
+        var result = await Api.GetMovieById(Id);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            isLoading = false;
+            return;
+        }
+
+        if (!result.status || result.movie == null)
+        {
+            error = result.error ?? "Фильм не найден";
+            isLoading = false;
+            return;
+        }
+
+        movie = result.movie;
+        isLoading = false;
+    }
+
+    private void Back()
+    {
+        Nav.NavigateTo("/movies");
+    }
+
+    private void GoEdit()
+    {
+        Nav.NavigateTo($"/edit-movie/{Id}");
+    }
+
+    private async Task DeleteMovie()
+    {
+        var result = await Api.DeleteMovie(Id);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!result.status)
+        {
+            error = result.error ?? "Ошибка удаления фильма";
+            return;
+        }
+
+        Nav.NavigateTo("/movies");
+    }
+}

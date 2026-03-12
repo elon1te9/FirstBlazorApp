@@ -1,0 +1,129 @@
+﻿@page "/edit-user/{Id:int}"
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+@using System.Linq
+
+<PageTitle>Редактирование пользователя</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Редактирование пользователя</h1>
+        <p class="page-subtitle">Изменение данных выбранного пользователя</p>
+    </div>
+</div>
+
+@if (!UserState.IsAuthenticated)
+{
+    <div class="alert alert-warning">Сначала войдите в систему.</div>
+}
+else if (!UserState.IsAdmin)
+{
+    <div class="alert alert-danger">Доступ запрещён.</div>
+}
+else
+{
+    <div class="center-card-wrap">
+        <div class="app-card">
+            <div class="card-body">
+                <h5 class="section-title">Форма редактирования</h5>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+
+                @if (!string.IsNullOrEmpty(ok))
+                {
+                    <div class="alert alert-success">@ok</div>
+                }
+
+                <div class="mb-3">
+                    <label class="app-label">Email</label>
+                    <input class="form-control" @bind="model.email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Имя</label>
+                    <input class="form-control" @bind="model.name" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">О себе</label>
+                    <textarea class="form-control" rows="3" @bind="model.about"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="app-label">Новый пароль</label>
+                    <input class="form-control" type="password" @bind="model.password" />
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+                    <button class="btn btn-outline-secondary" @onclick="Back">Назад</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Practice1Blazor.Requests.UpdateUserModel model = new();
+    private string? error;
+    private string? ok;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var list = await Api.GetUsersList();
+        if (list == null || !list.status)
+        {
+            error = "Не удалось загрузить пользователей";
+            return;
+        }
+
+        var u = list.users.FirstOrDefault(x => x.id_user == Id);
+        if (u == null)
+        {
+            error = "Пользователь не найден";
+            return;
+        }
+
+        model.id_user = u.id_user;
+        model.email = u.email;
+        model.name = u.name;
+        model.about = u.about;
+        model.password = "";
+    }
+
+    private async Task Save()
+    {
+        error = null;
+        ok = null;
+
+        var result = await Api.UpdateUser(model);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (result.status)
+        {
+            ok = result.message ?? "Сохранено";
+            Nav.NavigateTo("/users");
+        }
+        else
+        {
+            error = result.error ?? "Ошибка сохранения";
+        }
+    }
+
+    private void Back()
+    {
+        Nav.NavigateTo("/users");
+    }
+}

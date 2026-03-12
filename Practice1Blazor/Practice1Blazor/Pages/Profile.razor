@@ -1,0 +1,162 @@
+﻿@page "/profile"
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Профиль</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Профиль</h1>
+        <p class="page-subtitle">Просмотр и редактирование данных пользователя</p>
+    </div>
+</div>
+
+@if (!UserState.IsAuthenticated)
+{
+    <div class="alert alert-warning">Сначала войдите в систему.</div>
+}
+else if (profile == null)
+{
+    <div class="glass-panel hero-box">
+        <p class="empty-text">Загрузка...</p>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-12 col-lg-5">
+            <div class="app-card h-100">
+                <div class="card-body">
+                    <h5 class="section-title">Информация о профиле</h5>
+
+                    <div class="user-meta-list">
+                        <div class="user-meta-item">
+                            <span class="user-meta-label">Имя</span>
+                            <div class="user-meta-value">@profile.name</div>
+                        </div>
+
+                        <div class="user-meta-item">
+                            <span class="user-meta-label">Email</span>
+                            <div class="user-meta-value">@profile.email</div>
+                        </div>
+
+                        <div class="user-meta-item">
+                            <span class="user-meta-label">Роль</span>
+                            <div class="user-meta-value">@profile.role_name</div>
+                        </div>
+
+                        <div class="user-meta-item">
+                            <span class="user-meta-label">О себе</span>
+                            <div class="user-meta-value">@profile.about</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="app-card h-100">
+                <div class="card-body">
+                    <h5 class="section-title">Редактировать профиль</h5>
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+                    @if (!string.IsNullOrEmpty(ok))
+                    {
+                        <div class="alert alert-success">@ok</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="app-label">Имя</label>
+                        <input class="form-control" @bind="edit.name" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="app-label">О себе</label>
+                        <textarea class="form-control" rows="3" @bind="edit.about"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="app-label">Новый пароль</label>
+                        <input class="form-control" type="password" @bind="edit.password" />
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private Practice1Blazor.Models.UserDto? profile;
+    private Practice1Blazor.Requests.UpdateProfileModel edit = new();
+
+    private string? error;
+    private string? ok;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserState.IsAuthenticated)
+            return;
+
+        var res = await Api.GetProfile(UserState.CurrentUser.id_user);
+
+        if (res == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (!res.status || res.profile == null)
+        {
+            error = res.error ?? "Ошибка загрузки профиля";
+            return;
+        }
+
+        profile = res.profile;
+
+        edit.name = profile.name;
+        edit.about = profile.about;
+        edit.password = "";
+    }
+
+    private async Task Save()
+    {
+        error = null;
+        ok = null;
+
+        var res = await Api.UpdateProfile(UserState.CurrentUser.id_user, edit);
+
+        if (res == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (res.status)
+        {
+            ok = res.message ?? "Сохранено";
+
+            profile.name = edit.name;
+            profile.about = edit.about;
+
+            UserState.SetUser(new Practice1Blazor.Models.UserDto
+            {
+                id_user = UserState.CurrentUser.id_user,
+                email = UserState.CurrentUser.email,
+                id_role = UserState.CurrentUser.id_role,
+                role_name = UserState.CurrentUser.role_name,
+                name = edit.name,
+                about = edit.about
+            });
+        }
+        else
+        {
+            error = res.error ?? "Ошибка сохранения";
+        }
+    }
+}

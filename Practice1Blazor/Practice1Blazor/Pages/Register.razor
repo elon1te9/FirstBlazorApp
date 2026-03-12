@@ -1,0 +1,106 @@
+﻿@page "/register"
+@using Practice1Blazor.Requests
+@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.UserStateService UserState
+@inject NavigationManager Nav
+
+<PageTitle>Регистрация</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Регистрация</h1>
+        <p class="page-subtitle">Создание нового пользователя</p>
+    </div>
+</div>
+
+@if (UserState.IsAuthenticated)
+{
+    <div class="alert alert-info">
+        Вы уже вошли в систему.
+    </div>
+}
+else
+{
+    <div class="center-card-wrap">
+        <div class="app-card">
+            <div class="card-body">
+                <h5 class="section-title">Создать аккаунт</h5>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="app-label">Email</label>
+                        <input class="form-control" @bind="model.email" placeholder="Введите email" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="app-label">Имя</label>
+                        <input class="form-control" @bind="model.name" placeholder="Введите имя" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="app-label">О себе</label>
+                        <textarea class="form-control" rows="3" @bind="model.about" placeholder="Небольшое описание"></textarea>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="app-label">Пароль</label>
+                        <input class="form-control" type="password" @bind="model.password" placeholder="Введите пароль" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger mt-3">@error</div>
+                }
+
+                @if (!string.IsNullOrEmpty(ok))
+                {
+                    <div class="alert alert-success mt-3">@ok</div>
+                }
+
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-success" @onclick="DoRegister">Зарегистрироваться</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private RegUserModel model = new();
+    private string? error;
+    private string? ok;
+
+    private async Task DoRegister()
+    {
+        error = null;
+        ok = null;
+
+        if (string.IsNullOrWhiteSpace(model.email) ||
+            string.IsNullOrWhiteSpace(model.name) ||
+            string.IsNullOrWhiteSpace(model.password))
+        {
+            error = "Заполните email, имя и пароль";
+            return;
+        }
+
+        var result = await Api.RegisterUser(model);
+
+        if (result == null)
+        {
+            error = "Нет ответа от сервера";
+            return;
+        }
+
+        if (result.status)
+        {
+            ok = result.message ?? "Регистрация успешна";
+            model = new RegUserModel();
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            error = result.error ?? "Ошибка регистрации";
+        }
+    }
+}
