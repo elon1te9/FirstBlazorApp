@@ -6,7 +6,7 @@
     <div class="app-brand-block">
         <div class="app-brand-mark">🎬</div>
         <div>
-            <div class="app-brand-title">MovieDigest</div>
+            <div class="app-brand-title">КиноПортал</div>
             <div class="app-brand-subtitle">Blazor Practice Project</div>
         </div>
         <button title="Navigation menu" class="navbar-toggler app-menu-toggle" @onclick="ToggleNavMenu">
@@ -39,15 +39,15 @@
                     </NavLink>
                 </div>
             }
+            <div class="nav-item">
+                <NavLink class="nav-link app-nav-link" href="movies">
+                    <span>🎞️</span>
+                    <span>Фильмы</span>
+                </NavLink>
+            </div>
 
             @if (UserState.IsAuthenticated)
             {
-                <div class="nav-item">
-                    <NavLink class="nav-link app-nav-link" href="movies">
-                        <span>🎞️</span>
-                        <span>Фильмы</span>
-                    </NavLink>
-                </div>
 
                 <div class="nav-item">
                     <NavLink class="nav-link app-nav-link" href="profile">

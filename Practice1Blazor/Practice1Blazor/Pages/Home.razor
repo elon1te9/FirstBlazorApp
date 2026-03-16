@@ -1,45 +1,175 @@
 ﻿@page "/"
+@using Practice1Blazor.Services
+@inject UserStateService UserState
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Главная</PageTitle>
 
 <div class="hero-box glass-panel">
     <div class="hero-chip">✨ Учебный проект на Blazor</div>
 
     <div class="page-header mb-0">
         <div>
-            <h1 class="page-title">Кино дайджест и управление пользователями</h1>
+            <h1 class="page-title">Добро пожаловать в КиноПортал</h1>
             <p class="page-subtitle">
-                Здесь будет твой красивый интерфейс, а позже добавим каталог фильмов и новый функционал.
+                Ваш персональный каталог фильмов с удобным управлением и современным интерфейсом
             </p>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12 col-lg-4">
-        <div class="glass-panel info-card">
-            <div class="info-card-title">Авторизация</div>
-            <p class="info-card-text">
-                Вход и регистрация уже работают. Логику не трогаем — меняем только внешний вид.
-            </p>
+<div class="row g-4 mb-4">
+    @if (UserState.IsAuthenticated)
+    {
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoMovies">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">🎬</div>
+                    <div>
+                        <div class="info-card-title">Каталог фильмов</div>
+                        <p class="info-card-text">
+                            Просмотр фильмов с фильтрацией по жанрам, поиском и сортировкой.
+                            @(UserState.IsAdmin ? "Администраторам доступен полный CRUD." : "")
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="col-12 col-lg-4">
-        <div class="glass-panel info-card">
-            <div class="info-card-title">Пользователи</div>
-            <p class="info-card-text">
-                Страница пользователей и редактирование остаются рабочими, мы лишь делаем их визуально аккуратнее.
-            </p>
-        </div>
-    </div>
+        @if (UserState.IsAdmin)
+        {
+            <div class="col-12 col-md-6">
+                <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoUsers">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="feature-icon">👥</div>
+                        <div>
+                            <div class="info-card-title">Управление пользователями</div>
+                            <p class="info-card-text">
+                                Просмотр всех пользователей, редактирование ролей и удаление аккаунтов.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
-    <div class="col-12 col-lg-4">
-        <div class="glass-panel info-card">
-            <div class="info-card-title">Следующий этап</div>
-            <p class="info-card-text">
-                После редизайна текущих страниц спокойно перейдём к фильму, карточкам и новому CRUD.
-            </p>
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoProfile">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">👤</div>
+                    <div>
+                        <div class="info-card-title">Мой профиль</div>
+                        <p class="info-card-text">
+                            Просмотр и редактирование данных вашего аккаунта.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="Logout">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">🚪</div>
+                    <div>
+                        <div class="info-card-title">Выйти</div>
+                        <p class="info-card-text">
+                            Завершить текущую сессию.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoLogin">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">🔐</div>
+                    <div>
+                        <div class="info-card-title">Вход в систему</div>
+                        <p class="info-card-text">
+                            Авторизуйтесь для оценки полного функционала сайта.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoRegister">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">📝</div>
+                    <div>
+                        <div class="info-card-title">Регистрация</div>
+                        <p class="info-card-text">
+                            Создайте новый аккаунт для доступа ко всем функциям приложения.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100" style="cursor: pointer;" @onclick="GoMovies">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">🎬</div>
+                    <div>
+                        <div class="info-card-title">Каталог фильмов</div>
+                        <p class="info-card-text">
+                            Ознакомьтесь с коллекцией фильмов нашего проекта.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <div class="glass-panel info-card h-100">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="feature-icon">🛡️</div>
+                    <div>
+                        <div class="info-card-title">Безопасность</div>
+                        <p class="info-card-text">
+                            Надёжная система авторизации с разграничением прав доступа.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
+
+@code {
+    private void GoMovies()
+    {
+        Nav.NavigateTo("/movies");
+    }
+
+    private void GoUsers()
+    {
+        Nav.NavigateTo("/users");
+    }
+
+    private void GoProfile()
+    {
+        Nav.NavigateTo("/profile");
+    }
+
+    private void GoLogin()
+    {
+        Nav.NavigateTo("/login");
+    }
+
+    private void GoRegister()
+    {
+        Nav.NavigateTo("/register");
+    }
+
+    private void Logout()
+    {
+        UserState.Logout();
+        Nav.NavigateTo("/");
+    }
+}

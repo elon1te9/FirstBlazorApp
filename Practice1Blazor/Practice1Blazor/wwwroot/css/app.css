@@ -419,6 +419,17 @@ textarea.form-control {
     margin: 0;
 }
 
+.feature-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.info-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+}
+
 @media (max-width: 991.98px) {
     .app-content {
         padding: 1rem;
@@ -432,3 +443,27 @@ textarea.form-control {
         padding: 1.5rem;
     }
 }
+
+/* Тёмный select */
+.form-control {
+    background-color: #262d3d !important;
+    color: #fff !important;
+    border-color: #334155 !important;
+}
+.form-select {
+    background-color: #262d3d !important;
+    color: #fff !important;
+    border-color: #334155 !important;
+}
+
+    .form-select:focus {
+        background-color: #262d3d !important;
+        color: #fff !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+    }
+
+    .form-select option {
+        background-color: #262d3d;
+        color: #fff;
+    }

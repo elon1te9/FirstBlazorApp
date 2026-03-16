@@ -1,6 +1,6 @@
-﻿@page "/movie/{Id:int}"
+﻿@page ﻿"/movie/{Id:int}"
 @using Practice1Blazor.Models
-@inject Practice1Blazor.Services.ApiRequestService Api
+@inject Practice1Blazor.Services.ApiRequestService ApiRequestService
 @inject Practice1Blazor.Services.UserStateService UserState
 @inject NavigationManager Nav
 
@@ -19,29 +19,20 @@
         <p class="empty-text">Загрузка фильма...</p>
     </div>
 }
-else if (!string.IsNullOrEmpty(error))
+else if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="alert alert-danger">@errorMessage</div>
 }
+
 else if (movie != null)
 {
     <div class="row g-4">
         <div class="col-12 col-lg-4">
             <div class="app-card h-100">
                 <div class="card-body">
-                    @if (!string.IsNullOrWhiteSpace(movie.image_url))
-                    {
-                        <img src="@movie.image_url"
-                             alt="@movie.title"
-                             style="width:100%; height:420px; object-fit:cover; border-radius:16px;" />
-                    }
-                    else
-                    {
-                        <div class="glass-panel hero-box d-flex align-items-center justify-content-center"
-                             style="height:420px; margin-bottom:0;">
-                            <p class="empty-text">Постер отсутствует</p>
-                        </div>
-                    }
+                    <FallbackImage Src="@movie.image_url"
+                                   Alt="@movie.title"
+                                   Style="width:100%; height:420px; object-fit:cover; border-radius:16px;" />
                 </div>
             </div>
         </div>
@@ -49,15 +40,15 @@ else if (movie != null)
         <div class="col-12 col-lg-8">
             <div class="app-card h-100">
                 <div class="card-body">
-                    <h2 class="page-title" style="font-size: 1.8rem;">@movie.title</h2>
+                    <h2 class="page-title mb-3" style="font-size: 1.8rem;">@movie.title</h2>
 
                     <div class="mb-3 d-flex gap-2 flex-wrap">
-                        <span class="stat-badge">Жанр: @movie.genre</span>
+                        <span class="stat-badge">Жанр: @movie.name_genre</span>
                         <span class="stat-badge">Рейтинг: ⭐ @movie.rating</span>
                         <span class="stat-badge">Дата выхода: @movie.release_date.ToString("dd.MM.yyyy")</span>
                     </div>
 
-                    <h5 class="section-title">Описание</h5>
+                    <h5 class="section-title mb-2">Описание</h5>
                     <p style="color:#dbe4ff; line-height:1.7;">
                         @movie.description
                     </p>
@@ -84,41 +75,33 @@ else if (movie != null)
     </div>
 }
 
-@code {
+@code{
+
     [Parameter]
     public int Id { get; set; }
 
-    private MovieDto? movie;
-    private string? error;
     private bool isLoading = true;
+    private string? errorMessage;
+    private MovieDto? movie;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadMovie();
     }
-
     private async Task LoadMovie()
     {
-        error = null;
+        errorMessage = null;
         isLoading = true;
 
-        var result = await Api.GetMovieById(Id);
+        var result_movie = await ApiRequestService.GetMovieByIdAsync(Id);
 
-        if (result == null)
+        if (result_movie == null || !result_movie.status || result_movie.movie == null)
         {
-            error = "Нет ответа от сервера";
+            errorMessage = "Ошибка получения данных о фильме";
             isLoading = false;
             return;
         }
-
-        if (!result.status || result.movie == null)
-        {
-            error = result.error ?? "Фильм не найден";
-            isLoading = false;
-            return;
-        }
-
-        movie = result.movie;
+        movie = result_movie.movie;
         isLoading = false;
     }
 
@@ -134,20 +117,14 @@ else if (movie != null)
 
     private async Task DeleteMovie()
     {
-        var result = await Api.DeleteMovie(Id);
+        var result = await ApiRequestService.DeleteMovieAsync(Id);
 
-        if (result == null)
+        if (!result)
         {
-            error = "Нет ответа от сервера";
+            errorMessage = "Ошибка удаления фильма";
             return;
         }
-
-        if (!result.status)
-        {
-            error = result.error ?? "Ошибка удаления фильма";
-            return;
-        }
-
         Nav.NavigateTo("/movies");
     }
+
 }

@@ -78,51 +78,77 @@ namespace Practice1Blazor.Services
             return JsonSerializer.Deserialize<RegResponse>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
-
-        public async Task<MovieListResponse?> GetMoviesList()
+        public async Task<MovieListResponse> GetMoviesListAsync()
         {
-            var response = await _http.GetAsync("api/movies");
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<MovieListResponse>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                return await _http.GetFromJsonAsync<MovieListResponse>("api/movies");
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        public async Task<MovieResponse?> GetMovieById(int id)
+        public async Task<MovieResponse?> GetMovieByIdAsync(int id)
         {
-            var response = await _http.GetAsync($"api/movies/{id}");
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<MovieResponse>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                return await _http.GetFromJsonAsync<MovieResponse>($"api/movies/{id}");
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        public async Task<GenreListResponse?> GetGenreListAsync()
+        {
+            try
+            {
+                return await _http.GetFromJsonAsync<GenreListResponse>("api/genres");
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        public async Task<bool> CreateMovieAsync(CreateMovieModel model)
+        {
+            try
+            {
+                var response = await _http.PostAsJsonAsync("api/movies", model);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        public async Task<MovieResponse?> CreateMovie(CreateMovieModel model)
+        public async Task<bool> UpdateMovieAsync(int id, UpdateMovieModel model)
         {
-            var response = await _http.PostAsJsonAsync("api/movies", model);
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<MovieResponse>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                var response = await _http.PutAsJsonAsync($"api/movies/{id}", model);
+                return response.IsSuccessStatusCode;
+            }
+            catch 
+            {
+                return false;
+            }
         }
 
-        public async Task<MovieResponse?> UpdateMovie(int id, UpdateMovieModel model)
+        public async Task<bool> DeleteMovieAsync(int id)
         {
-            var response = await _http.PutAsJsonAsync($"api/movies/{id}", model);
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<MovieResponse>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                var response = await _http.DeleteAsync($"api/movies/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
-
-        public async Task<ApiResponse?> DeleteMovie(int id)
-        {
-            var response = await _http.DeleteAsync($"api/movies/{id}");
-            var json = await response.Content.ReadAsStringAsync();
-
-            return JsonSerializer.Deserialize<ApiResponse>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-
     }
 }

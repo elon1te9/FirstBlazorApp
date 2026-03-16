@@ -1,6 +1,8 @@
 ﻿@page "/add-movie"
+@using Practice1Blazor.Models
 @using Practice1Blazor.Requests
-@inject Practice1Blazor.Services.ApiRequestService Api
+@using Practice1Blazor.Services
+@inject Practice1Blazor.Services.ApiRequestService ApiRequestService
 @inject Practice1Blazor.Services.UserStateService UserState
 @inject NavigationManager Nav
 
@@ -9,33 +11,21 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Добавить фильм</h1>
-        <p class="page-subtitle">Создание нового фильма в кино дайджесте</p>
+        <p class="page-subtitle">Добвление нового фильма на сайт</p>
     </div>
 </div>
 
-@if (!UserState.IsAuthenticated)
-{
-    <div class="alert alert-warning">Сначала войдите в систему.</div>
-}
-else if (!UserState.IsAdmin)
-{
-    <div class="alert alert-danger">Доступ запрещён. Только администратор может добавлять фильмы.</div>
-}
-else
-{
     <div class="center-card-wrap">
         <div class="app-card">
             <div class="card-body">
-                <h5 class="section-title">Форма добавления</h5>
-
-                @if (!string.IsNullOrEmpty(error))
+            @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="alert alert-danger">@error</div>
+                <div class="alert alert-danger">@errorMessage</div>
                 }
 
-                @if (!string.IsNullOrEmpty(ok))
+            @if (!string.IsNullOrEmpty(okMessage))
                 {
-                    <div class="alert alert-success">@ok</div>
+                <div class="alert alert-success">@okMessage</div>
                 }
 
                 <div class="mb-3">
@@ -50,7 +40,12 @@ else
 
                 <div class="mb-3">
                     <label class="app-label">Жанр</label>
-                    <input class="form-control" @bind="model.genre" placeholder="Например: Фантастика" />
+                    <select class="form-select" @bind="selectedGenre">
+                    @foreach (var genre in genres_names)
+                        {
+                        <option value="@genre">@genre</option>
+                        }
+                    </select>
                 </div>
 
                 <div class="mb-3">
@@ -75,57 +70,75 @@ else
             </div>
         </div>
     </div>
-}
 
 @code {
     private CreateMovieModel model = new();
-    private string? error;
-    private string? ok;
+    private string? errorMessage;
+    private string? okMessage;
+    private string? selectedGenre;
+
+    private List<GenreDto>? genres;
+    private List<string> genres_names = new();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGenres();
+    }
+
+    private async Task LoadGenres()
+    {
+        errorMessage = null;
+        var result_genres = await ApiRequestService.GetGenreListAsync();
+
+        if (result_genres == null || !result_genres.status)
+        {
+            errorMessage = "Ошибка получения жанров";
+            return;
+        }
+        genres = result_genres.genres ?? new List<GenreDto>();
+        genres_names = genres.Select(x => x.name).ToList();
+    }
+
 
     private async Task CreateMovie()
     {
-        error = null;
-        ok = null;
+        errorMessage = null;
+        okMessage = null;
 
         if (string.IsNullOrWhiteSpace(model.title))
         {
-            error = "Введите название фильма";
+            errorMessage = "Введите название фильма";
             return;
         }
 
         if (string.IsNullOrWhiteSpace(model.description))
         {
-            error = "Введите описание фильма";
+            errorMessage = "Введите описание фильма";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(model.genre))
+        if (string.IsNullOrWhiteSpace(selectedGenre))
         {
-            error = "Введите жанр фильма";
+            errorMessage = "Введите жанр фильма";
             return;
         }
 
         if (model.rating < 0 || model.rating > 10)
         {
-            error = "Рейтинг должен быть от 0 до 10";
+            errorMessage = "Рейтинг должен быть от 0 до 10";
             return;
         }
+        var found_genre = genres.FirstOrDefault(x => x.name == selectedGenre);
+        model.id_genre = found_genre.id_genre;
 
-        var result = await Api.CreateMovie(model);
+        var result = await ApiRequestService.CreateMovieAsync(model);
 
-        if (result == null)
+        if (result == null || !result)
         {
-            error = "Нет ответа от сервера";
+            errorMessage = "Ошибка при добавлении фильма";
             return;
         }
 
-        if (!result.status)
-        {
-            error = result.error ?? "Ошибка при добавлении фильма";
-            return;
-        }
-
-        ok = result.message ?? "Фильм успешно добавлен";
+        okMessage = "Фильм успешно добавлен";
 
         Nav.NavigateTo("/movies");
     }

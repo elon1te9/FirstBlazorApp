@@ -73,9 +73,6 @@ else
 
         UserState.SetUser(result.user);
 
-        if (UserState.IsAdmin)
-            Nav.NavigateTo("/users");
-        else
-            Nav.NavigateTo("/");
+        Nav.NavigateTo("/");
     }
 }

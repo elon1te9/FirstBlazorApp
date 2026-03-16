@@ -1,9 +1,10 @@
 ﻿namespace Practice1Blazor.Models
 {
-    public class MovieResponse
+    public class GenreListResponse
     {
         public bool status { get; set; }
-        public MovieDto? movie { get; set; }
+        public List<GenreDto>? genres { get; set; }
         public string? error { get; set; }
+
     }
 }

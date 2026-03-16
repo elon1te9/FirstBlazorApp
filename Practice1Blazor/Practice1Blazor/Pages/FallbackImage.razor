@@ -1,0 +1,27 @@
+﻿<img src="@CurrentSrc"
+     alt="@Alt"
+     style="@Style"
+     @onerror="OnImageError" />
+
+@code {
+    [Parameter] public string? Src { get; set; }
+    [Parameter] public string FallbackSrc { get; set; } = "/images/no-poster.jpg";
+    [Parameter] public string Alt { get; set; } = "";
+    [Parameter] public string Style { get; set; } = "";
+
+    private string? CurrentSrc;
+
+    protected override void OnInitialized()
+    {
+        CurrentSrc = string.IsNullOrWhiteSpace(Src) ? FallbackSrc : Src;
+    }
+
+    private void OnImageError()
+    {
+        if (CurrentSrc != FallbackSrc)
+        {
+            CurrentSrc = FallbackSrc;
+            StateHasChanged();
+        }
+    }
+}

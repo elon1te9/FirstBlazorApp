@@ -97,9 +97,7 @@ namespace Practice1BlazorAPI.Services
 
             return new OkObjectResult(new
             {
-                status = true,
-                message = "Фильм добавлен",
-                movie
+                status = true
             });
         }
 
@@ -121,7 +119,7 @@ namespace Practice1BlazorAPI.Services
 
             var genre = await _context.Genres.FirstOrDefaultAsync(x => x.id_genre == model.id_genre);
             if (genre == null)
-                return new BadRequestObjectResult(new { eror = "Такого жанра нет" });
+                return new BadRequestObjectResult(new { error = "Такого жанра нет" });
 
             movie.title = model.title;
             movie.description = model.description;
@@ -134,9 +132,7 @@ namespace Practice1BlazorAPI.Services
 
             return new OkObjectResult(new
             {
-                status = true,
-                message = "Фильм обновлен",
-                movie
+                status = true
             });
         }
 
@@ -152,8 +148,7 @@ namespace Practice1BlazorAPI.Services
 
             return new OkObjectResult(new
             {
-                status = true,
-                message = "Фильм удален"
+                status = true
             });
         }
     }
